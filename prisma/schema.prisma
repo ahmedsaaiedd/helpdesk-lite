@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  EMPLOYEE
+  SUPPORT
+  MANAGER
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING
+  RESOLVED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketCategory {
+  IT_HARDWARE
+  SOFTWARE
+  ACCOUNT_ACCESS
+  NETWORK
+  FACILITIES
+  HR_PEOPLE
+  OTHER
+}
+
+enum ActivityType {
+  CREATED
+  ASSIGNED
+  REASSIGNED
+  STATUS_CHANGED
+  PRIORITY_CHANGED
+  CATEGORY_CHANGED
+  PROGRESS_UPDATE
+  REQUESTER_REPLY
+  RESOLVED
+}
+
+model User {
+  id                String           @id @default(cuid())
+  name              String
+  email             String           @unique
+  passwordHash      String
+  role              Role
+  active            Boolean          @default(true)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  requestedTickets  Ticket[]         @relation("TicketRequester")
+  assignedTickets   Ticket[]         @relation("TicketAssignee")
+  activities        TicketActivity[]
+
+  @@index([role, active])
+}
+
+model Ticket {
+  id          String          @id @default(cuid())
+  sequence    Int             @unique @default(autoincrement())
+  displayId   String          @unique @default(dbgenerated())
+  requestKey  String          @unique
+  title       String
+  description String
+  category    TicketCategory
+  priority    TicketPriority  @default(MEDIUM)
+  status      TicketStatus    @default(OPEN)
+  version     Int             @default(1)
+  requesterId String
+  assigneeId  String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  resolvedAt  DateTime?
+  requester   User            @relation("TicketRequester", fields: [requesterId], references: [id], onDelete: Restrict)
+  assignee    User?           @relation("TicketAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  activities  TicketActivity[]
+
+  @@index([requesterId, updatedAt(sort: Desc)])
+  @@index([assigneeId, status, updatedAt(sort: Desc)])
+  @@index([status, updatedAt(sort: Desc)])
+  @@index([priority, updatedAt(sort: Desc)])
+  @@index([category, updatedAt(sort: Desc)])
+}
+
+model TicketActivity {
+  id        String       @id @default(cuid())
+  ticketId  String
+  actorId   String
+  type      ActivityType
+  content   String?
+  metadata  Json?
+  createdAt DateTime     @default(now())
+  ticket    Ticket       @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  actor     User         @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([ticketId, createdAt])
+  @@index([actorId, createdAt])
+}
+
+model AuthAttempt {
+  email         String    @id
+  failures      Int       @default(0)
+  windowStarted DateTime  @default(now())
+  blockedUntil  DateTime?
+  updatedAt     DateTime  @updatedAt
+}
