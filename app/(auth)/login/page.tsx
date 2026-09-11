@@ -78,7 +78,7 @@ export default async function LoginPage() {
           <p className="eyebrow">Welcome back</p>
           <h2 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">Sign in to your workspace</h2>
           <p className="mb-8 mt-3 text-base leading-7 text-muted-foreground">Use your work account to view and manage support requests.</p>
-          <LoginForm showDemo={process.env.NODE_ENV !== "production"} />
+          <LoginForm demoEnabled={process.env.ENABLE_PUBLIC_DEMO === "true"} />
         </div>
       </section>
     </main>

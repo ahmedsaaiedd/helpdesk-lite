@@ -8,10 +8,11 @@ import { prisma } from "@/lib/prisma";
 const currentUser = cache(async () => {
   const session = await auth();
   if (!session?.user?.id) return null;
-  return prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: { id: true, name: true, email: true, role: true, active: true },
   });
+  return user ? { ...user, isDemo: session.user.demo === true } : null;
 });
 
 export async function requireUser() {

@@ -12,7 +12,10 @@ export type CreateUserActionResult =
   | { ok: false; message: string; fieldErrors?: Record<string, string[]> };
 
 export async function createUserAction(input: unknown): Promise<CreateUserActionResult> {
-  await requireRole("MANAGER");
+  const manager = await requireRole("MANAGER");
+  if (manager.isDemo) {
+    return { ok: false, message: "User management is disabled in the public demo." };
+  }
   const parsed = createUserSchema.safeParse(input);
 
   if (!parsed.success) {

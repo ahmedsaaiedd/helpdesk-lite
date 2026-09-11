@@ -9,6 +9,7 @@ import {
   PlusCircle,
   SearchCheck,
   ShieldCheck,
+  Sparkles,
   UserPlus,
   UsersRound,
   UserRoundCheck,
@@ -39,7 +40,7 @@ import { initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ThemeMenu } from "./theme-menu";
 
-type ShellUser = { name?: string | null; email?: string | null; role: Role };
+type ShellUser = { name?: string | null; email?: string | null; role: Role; isDemo: boolean };
 
 const navigation = {
   EMPLOYEE: [
@@ -182,6 +183,12 @@ export function AppShell({ user, children }: { user: ShellUser; children: React.
         </div>
 
         <main id="main-content" className="mx-auto w-full max-w-[1480px] p-4 sm:p-6 lg:p-8 xl:p-10">
+          {user.isDemo ? (
+            <div role="status" className="mb-4 flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/[0.07] px-4 py-3 text-sm sm:mb-6 sm:items-center">
+              <Sparkles className="mt-0.5 size-4 shrink-0 text-primary sm:mt-0" aria-hidden="true" />
+              <p><span className="font-semibold text-foreground">Demo Mode</span><span className="text-muted-foreground"> · You are exploring sample data. Changes may be reset.</span></p>
+            </div>
+          ) : null}
           <motion.div
             key={pathname}
             initial={reduceMotion ? false : { opacity: 0, y: 6 }}

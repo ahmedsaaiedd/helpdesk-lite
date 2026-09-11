@@ -10,14 +10,19 @@ import {
 } from "@prisma/client";
 
 const prisma = new PrismaClient();
-const DEMO_PASSWORD = "HelpDesk123!";
 
 async function main() {
   if (process.env.NODE_ENV === "production") {
     throw new Error("Development seed must not run in production.");
   }
 
-  const passwordHash = await hash(DEMO_PASSWORD, 12);
+  const demoPassword = process.env.DEMO_PASSWORD;
+  if (!demoPassword) {
+    throw new Error("DEMO_PASSWORD is required. Add it to your .env file before running the seed.");
+  }
+
+  const passwordHash = await hash(demoPassword, 12);
+  await prisma.authAttempt.deleteMany();
   const [employee, secondEmployee, support, secondSupport, manager] = await Promise.all([
     prisma.user.upsert({
       where: { email: "employee@helpdesklite.local" },
@@ -154,7 +159,6 @@ async function main() {
 
   void manager;
   console.info("Seeded HelpDesk Lite demo data.");
-  console.info("Demo password for all users: " + DEMO_PASSWORD);
 }
 
 main()

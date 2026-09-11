@@ -19,7 +19,7 @@ const roleTone: Record<Role, string> = {
 };
 
 export default async function UsersPage() {
-  await requireRole("MANAGER");
+  const manager = await requireRole("MANAGER");
   const users = await getUsers();
   const activeCount = users.filter((user) => user.active).length;
 
@@ -29,7 +29,19 @@ export default async function UsersPage() {
       <PageHeader eyebrow="Access management" title="Users" description="Create controlled internal accounts and see who can access the workspace." icon={UsersRound} />
 
       <div className="grid items-start gap-6 xl:grid-cols-[390px_minmax(0,1fr)]">
-        <div className="xl:sticky xl:top-24"><CreateUserForm /></div>
+        <div className="xl:sticky xl:top-24">
+          {manager.isDemo ? (
+            <div className="surface-panel form-surface p-5 sm:p-6">
+              <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
+                <ShieldCheck className="size-5" aria-hidden="true" />
+              </span>
+              <h2 className="mt-4 font-semibold">User management is protected</h2>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                You can inspect the account directory in Demo Mode, but creating accounts is disabled to keep the public workspace safe.
+              </p>
+            </div>
+          ) : <CreateUserForm />}
+        </div>
         <section className="surface-panel overflow-hidden">
           <div className="flex flex-col gap-3 border-b p-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, LoaderCircle, LockKeyhole, Mail } from "lucide-react";
+import { Eye, EyeOff, Headphones, LoaderCircle, LockKeyhole, Mail, Play, ShieldCheck, UserRound } from "lucide-react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -12,21 +12,23 @@ import { Input } from "@/components/ui/input";
 import { loginSchema } from "@/lib/validation";
 
 type LoginValues = z.infer<typeof loginSchema>;
+type DemoRole = "EMPLOYEE" | "SUPPORT" | "MANAGER";
 
-const demos = [
-  ["Employee", "employee@helpdesklite.local"],
-  ["Support", "support@helpdesklite.local"],
-  ["Manager", "manager@helpdesklite.local"],
+const demoRoles = [
+  { role: "EMPLOYEE", label: "Employee", icon: UserRound },
+  { role: "SUPPORT", label: "Support", icon: Headphones },
+  { role: "MANAGER", label: "Manager", icon: ShieldCheck },
 ] as const;
 
-export function LoginForm({ showDemo }: { showDemo: boolean }) {
+export function LoginForm({ demoEnabled = false }: { demoEnabled?: boolean }) {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [showDemoRoles, setShowDemoRoles] = useState(false);
+  const [demoLoading, setDemoLoading] = useState<DemoRole | null>(null);
   const [serverError, setServerError] = useState("");
   const {
     register,
     handleSubmit,
-    setValue,
     formState: { errors, isSubmitting },
   } = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -52,10 +54,22 @@ export function LoginForm({ showDemo }: { showDemo: boolean }) {
     }
   }
 
-  function applyDemo(email: string) {
-    setValue("email", email, { shouldValidate: true });
-    setValue("password", "HelpDesk123!", { shouldValidate: true });
+  async function enterDemo(role: DemoRole) {
     setServerError("");
+    setDemoLoading(role);
+    try {
+      const result = await signIn("demo", { role, redirect: false });
+      if (result?.error) {
+        setServerError("The live demo is temporarily unavailable. Please try again.");
+        return;
+      }
+      router.push("/");
+      router.refresh();
+    } catch {
+      setServerError("We could not open the live demo. Check your connection and try again.");
+    } finally {
+      setDemoLoading(null);
+    }
   }
 
   return (
@@ -113,30 +127,58 @@ export function LoginForm({ showDemo }: { showDemo: boolean }) {
           </div>
         )}
 
-        <Button type="submit" disabled={isSubmitting} className="h-12 w-full rounded-xl text-base font-semibold shadow-[0_8px_24px_rgb(15_118_110_/_0.22)]">
+        <Button type="submit" disabled={isSubmitting || demoLoading !== null} className="h-12 w-full rounded-xl text-base font-semibold shadow-[0_8px_24px_rgb(15_118_110_/_0.22)]">
           {isSubmitting ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : null}
           {isSubmitting ? "Signing in…" : "Sign in"}
         </Button>
       </form>
 
-      {showDemo && (
-        <div className="mt-7 border-t pt-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Development accounts</p>
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {demos.map(([label, email]) => (
-              <button
-                key={email}
-                type="button"
-                onClick={() => applyDemo(email)}
-                className="min-h-10 rounded-lg border bg-background px-2 text-sm font-medium transition-[background,transform] hover:bg-accent active:scale-[0.98]"
-              >
-                {label}
-              </button>
-            ))}
+      {demoEnabled ? (
+        <div className="mt-7">
+          <div className="flex items-center gap-3" aria-hidden="true">
+            <span className="h-px flex-1 bg-border" />
+            <span className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">or</span>
+            <span className="h-px flex-1 bg-border" />
           </div>
-          <p className="mt-2.5 text-xs text-muted-foreground">Choose a role, then press Sign in.</p>
+
+          {!showDemoRoles ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowDemoRoles(true)}
+              className="mt-5 h-12 w-full rounded-xl text-base font-semibold"
+            >
+              <Play className="size-4" aria-hidden="true" />
+              Explore live demo
+            </Button>
+          ) : (
+            <div className="mt-5 rounded-2xl border bg-muted/30 p-3.5">
+              <div className="mb-3 px-1">
+                <p className="text-sm font-semibold">Choose a workspace</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">Explore sample data without entering a password.</p>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {demoRoles.map(({ role, label, icon: Icon }) => {
+                  const loading = demoLoading === role;
+                  return (
+                    <button
+                      key={role}
+                      type="button"
+                      disabled={demoLoading !== null}
+                      onClick={() => enterDemo(role)}
+                      className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border bg-background px-2 text-sm font-semibold transition-[border-color,background,transform] hover:border-primary/35 hover:bg-accent active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
+                    >
+                      {loading ? <LoaderCircle className="size-4 animate-spin text-primary" aria-hidden="true" /> : <Icon className="size-4 text-primary" aria-hidden="true" />}
+                      <span>{loading ? "Opening…" : label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      ) : null}
+
     </div>
   );
 }
